@@ -1,0 +1,4 @@
+make set with words
+put set of words into a map
+make the map key the pattern "  e " __e_
+Dont create every possible map key, just make the ones that exist
