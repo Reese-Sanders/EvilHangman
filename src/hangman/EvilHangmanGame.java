@@ -14,6 +14,7 @@ public class EvilHangmanGame implements IEvilHangmanGame {
     public EvilHangmanGame(){
         dict = new HashSet<>();
         guessedLetters = new TreeSet<Character>();
+        potWord = new StringBuilder();
     }
 
     @java.lang.Override
@@ -27,22 +28,43 @@ public class EvilHangmanGame implements IEvilHangmanGame {
 
         while (scan.hasNext()) {
             String toDict = scan.next().toLowerCase(Locale.ROOT);
-            if (toDict.length() == this.wordLength+1) {
+            if (toDict.length() == this.wordLength) {
                 dict.add(toDict);
             }
         }
-
+        if (dict.size() == 0){
+            throw new EmptyDictionaryException();
+        }
+        //System.out.println(dict.toString());
     }
 
     @java.lang.Override
     public Set<String> makeGuess(char guess) throws GuessAlreadyMadeException {
         guess = Character.toLowerCase(guess);
-        Map<String, Set<String>> potWords = genPotWordsMap(guess);
+        if (guessedLetters.contains(guess)){
+            throw new GuessAlreadyMadeException();
+        }
+        guessedLetters.add(guess);
+        return evalSets(genPotWordsMap(guess), guess);
 
-        int maxCount = 0;
+    }
+
+    private void updatePotWord(String update) {
+        for (int i = 0; i < update.length(); ++i){
+            //System.out.println(potWord.toString() + " and i = " + i);
+            if (update.charAt(i) != '_'){
+                potWord.setCharAt(i, update.charAt(i));
+            }
+        }
+        //System.out.println(potWord.toString());
+    }
+
+    private Set<String> evalSets(Map<String, Set<String>> potWords, char guess){
+        int maxCount = -1;
         Set<String> maxSet = new HashSet<>();
-        String maxKey = new String("");
+        String maxKey = null;
         for (Map.Entry<String, Set<String>> i : potWords.entrySet()){
+            //System.out.println("Checking set " + i.getValue().toString() + "While max is set " + maxSet.toString());
             //If this word key set size is larger than max
             if (i.getValue().size() > maxCount) {
                 maxCount = i.getValue().size();
@@ -50,7 +72,8 @@ public class EvilHangmanGame implements IEvilHangmanGame {
                 maxKey = i.getKey();
             }
             //If this word key is equal
-            if (i.getValue().size() == maxCount) {
+            else if (i.getValue().size() == maxCount) {
+
                 //finds the least amount of word and last index
                 Deque<Integer> countI = new ArrayDeque<Integer>();
                 Deque<Integer> countM = new ArrayDeque<Integer>();
@@ -91,6 +114,9 @@ public class EvilHangmanGame implements IEvilHangmanGame {
                 }
             }
         }
+        //System.out.println(maxSet.toString());
+        updatePotWord(maxKey);
+        dict = maxSet;
         return maxSet;
     }
 
@@ -98,7 +124,7 @@ public class EvilHangmanGame implements IEvilHangmanGame {
         Map<String, Set<String>> potWords = new HashMap<String, Set<String>>();
         for (String word : dict) {
             int index = word.indexOf(Character.toLowerCase(guess));
-            if (index > 0){
+            if (index > -1){
                 StringBuilder key = new StringBuilder();
                 for (int i = 0; i < word.length(); i++){
                     if (guess == word.charAt(i)){
@@ -114,8 +140,17 @@ public class EvilHangmanGame implements IEvilHangmanGame {
                     nArray.add(word);
                     potWords.put(key.toString(), nArray);
                 }
+            } else {
+                if (potWords.containsKey(potWord.toString())){
+                    potWords.get(potWord.toString()).add(word);
+                } else {
+                    Set<String> nArray = new TreeSet<String>();
+                    nArray.add(word);
+                    potWords.put(potWord.toString(), nArray);
+                }
             }
         }
+        //System.out.println(potWords.toString());
         return potWords;
     }
 
